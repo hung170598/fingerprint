@@ -1,5 +1,5 @@
 var fingerprintData = {};
-var fingerprintData = {};
+var finalData = {};
 var actual_JSON;
 var permissionsList = [];
 var geoFlag = false;
@@ -16,6 +16,22 @@ var permissionsListObj = {};
 
 // time stamp of the fingerprint
 fingerprintData['timestamp'] = Date.now();
+
+// // global window error handler
+// window.onerror = function(errorMsg, url, lineNumber, column, errorObj) {
+//     var error = {};
+//     var d = new Date();
+//     var time = d.toDateString() + "," + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+//     error['Timestamp'] = time;
+//     error['UserAgent'] = navigator.userAgent;
+//     error['Error'] = errorMsg;
+//     error['Script'] = url;
+//     error['Line'] = lineNumber;
+//     error['Column'] = column;
+//     error['StackTrace'] = errorObj;
+//     console.log("In window.onerror" + error);
+//     sendToServer(error);
+//   };
 
 // try catch wrapper
 var wrap = function(func) {
@@ -37,75 +53,7 @@ var wrap = function(func) {
   };
 };
 
-// var getLocationInfoR = wrap(getLocationInfo);
-// var requestMidiAccessR = wrap(requestMidiAccess);
-// var notificationsPermissionRequestR = wrap(notificationsPermissionRequest);
-// var mediaDevicesPermissionsRequestR = wrap(mediaDevicesPermissionsRequest);
-var getHttpHeadersInfoR = wrap(getHttpHeadersInfo);
-var getWeglRendererAndVendorInfoR = wrap(getWeglRendererAndVendorInfo);
-// var getBrowserInfoR = wrap(getBrowserInfo);
-// var getDeviceLightInfoR = wrap(getDeviceLightInfo);
-// var getDeviceOrientationInfoR = wrap(getDeviceOrientationInfo);
-// var getDeviceProximityInfoR = wrap(getDeviceProximityInfo);
-// var getDeviceMotionInfoR = wrap(getDeviceMotionInfo);
-// var getdeviceBatteryInfoR = wrap(getdeviceBatteryInfo);
-// var getMediaDevicesInfoR = wrap(getMediaDevicesInfo);
-var getFingerprint2LibraryInfoR = wrap(getFingerprint2LibraryInfo);
-var getDetectRtcLibraryInfoR = wrap(getDetectRtcLibraryInfo);
-// var audioFingerprintInfoR = wrap(audioFingerprintInfo);
-var mimeTypeInfoR = wrap(mimeTypeInfo);
-// var connectionTypeInfoR = wrap(connectionTypeInfo);
-// var getBrowserMediaPermissionsInfoR = wrap(getBrowserMediaPermissionsInfo);
-// var getBrowserGeoLocationPermissionsInfoR = wrap(getBrowserGeoLocationPermissionsInfo);
-// var getBrowserNotificationPermissionsInfoR = wrap(getBrowserNotificationPermissionsInfo);
-// var getBrowserPushNotificationPermissionsInfoR = wrap(getBrowserPushNotificationPermissionsInfo);
-// var getBrowserMIDIPermissionsInfoR = wrap(getBrowserMIDIPermissionsInfo);
-// var getBrowserPermissionsInfoR = wrap(getBrowserPermissionsInfo);
-// var cleanDataR = wrap(cleanData);
-// var printOnScreenR = wrap(printOnScreen);
-// var sendToServerR = wrap(sendToServer);
-// var functionCallFacadeR = wrap(functionCallFacade);
-// var mainEntryFunctionR = wrap(mainEntryFunction);
-// var mediaRecorderAudioInfoR = wrap(mediaRecorderAudioInfo);
-// var mediaRecorderVideoInfoR = wrap(mediaRecorderVideoInfo);
-// var enabledPluginInfoR = wrap(enabledPluginInfo);
-// var audioContextPropertiesInfoR = wrap(audioContextPropertiesInfo);
-// var audioScillatorCompressorInfoR = wrap(audioScillatorCompressorInfo);
-// var getInstalledFontsUsingJSR = wrap(getInstalledFontsUsingJS);
-// var functionCallFacade2R = wrap(functionCallFacade2);
 
-// read cookies helper function
-function readCookie(name) {
-  var nameEQ = name + "=";
-  var ca = document.cookie.split(';');
-  for (var i = 0; i < ca.length; i++) {
-    var c = ca[i];
-    while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-}
-
-// Extra header information from the server
-function getHttpHeadersInfo() {
-  var session_id = readCookie('session_id');
-  if (session_id) {
-    fingerprintData['session_id'] = session_id;
-  }
-  var tempString = readCookie('httpHeaders');
-  tempString = decodeURIComponent(tempString);
-
-  if (tempString) {
-    tempString = JSON.parse(tempString);
-    //console.log('In getHttpHeadersInfo' + JSON.stringify(tempString));
-    for (var key in tempString) {
-      if (tempString.hasOwnProperty(key)) {
-        fingerprintData[key] = tempString[key];
-        console.log('In getHttpHeadersInfo' + fingerprintData[key]);
-      }
-    }
-  }
-}
 // webgl vendor and renderer
 function getWeglRendererAndVendorInfo() {
   var canvas = document.getElementById('my_Canvas');
@@ -128,6 +76,7 @@ function getWeglRendererAndVendorInfo() {
   var renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
   fingerprintData['webgl_vendor'] = vendor;
   fingerprintData['webgl_renderer'] = renderer;
+
 }
 
 // media devices
@@ -157,15 +106,82 @@ function getMediaDevicesInfo() {
   }
 }
 
+// permission query for webcam and microphone
+function getBrowserMediaPermissionsInfo() {
+
+  var deferred = $.Deferred();
+  var hasWebRTC = navigator.getUserMedia ||
+    navigator.webkitGetUserMedia ||
+    navigator.mozGetUserMedia ||
+    navigator.msGetUserMedia;
+  if (hasWebRTC) {
+
+    try {
+      DetectRTC.load(function() {
+        //fingerprintData['is_website_hasWebcam_permissions'] = DetectRTC.isWebsiteHasWebcamPermissions;
+        //console.log(DetectRTC.isWebsiteHasWebcamPermissions);
+        if (DetectRTC.isWebsiteHasWebcamPermissions) {
+          //permissionsList.push('webcam: granted');
+          permissionsListObj["webcam"] = 'granted';
+        } else if (medFlag1) {
+          permissionsListObj["webcam"] = 'granted';
+        } else if (medFlag2) {
+          permissionsListObj["webcam"] = 'denied';
+        } else {
+          permissionsListObj["webcam"] = 'denied';
+        }
+        //fingerprintData['is_website_hasMicrophone_permissions'] = DetectRTC.isWebsiteHasMicrophonePermissions;
+        //console.log(DetectRTC.isWebsiteHasMicrophonePermissions);
+        if (DetectRTC.isWebsiteHasMicrophonePermissions) {
+          permissionsListObj["microphone"] = 'granted';
+        } else if (medFlag1) {
+          permissionsListObj["microphone"] = 'granted';
+
+        } else if (medFlag2) {
+          permissionsListObj["microphone"] = 'denied';
+        } else {
+          permissionsListObj["microphone"] = 'denied';
+
+        }
+        deferred.resolve("In DetectRTC");
+      });
+
+    } catch (error) {
+      permissionsListObj["webcam"] = 'N/A';
+      permissionsListObj["microphone"] = 'N/A';
+      //console.log(error.message, "from", error.stack);
+      var errorD = {};
+      var d = new Date();
+      var time = d.toDateString() + "," + d.getHours() + ":" + d.getMinutes() + ":" + d.getSeconds();
+      errorD['Timestamp'] = time;
+      errorD['UserAgent'] = navigator.userAgent;
+      errorD['Error'] = error.stack;
+      errorD['ErrorMessage'] = error.message;
+      sendToServer(errorD);
+      console.log(JSON.stringify(errorD));
+      deferred.resolve(error);
+
+    }
+
+  } else {
+    permissionsListObj["webcam"] = 'N/A';
+    permissionsListObj["microphone"] = 'N/A';
+    return deferred.resolve("webcam and microphone").promise();
+
+  }
+  return deferred.promise();
+}
+
 // from Fingerprint2
 function getFingerprint2LibraryInfo() {
+  var fp = new Fingerprint2();
   var tempObj = {};
-  Fingerprint2.get(function(components) {
+  fp.get(function(result, components) {
     for (var index in components) {
       var obj = components[index];
       var value = obj.value;
       var key = obj.key;
-      fingerprintData[key.toString()] = value;
+      fingerprintData[key] = value.toString();
       tempObj[key] = value;
     }
     // fingerprintData['user_agent'] = tempObj['user_agent'];
@@ -188,7 +204,7 @@ function getFingerprint2LibraryInfo() {
     // } else {
     //   fingerprintData['do_not_track'] = false;
     // }
-    // console.log(tempObj);
+
     // if (tempObj['plugins'].length > 0) {
     //   //console.log(tempObj['regular_plugins']);
     //   fingerprintData['plugins'] = tempObj['plugins'];
@@ -207,6 +223,9 @@ function getFingerprint2LibraryInfo() {
     // fingerprintData['has_lied_browser'] = tempObj['has_lied_browser'];
     // fingerprintData['touch_support'] = tempObj['touch_support'];
   });
+
+
+
 }
 
 // get browser information
@@ -268,6 +287,7 @@ function getBrowserInfo() {
   }
   //AddRowToInfo ("Cookies are enabled (cookieEnabled)", window.navigator.cookieEnabled);
   fingerprintData['cookies_enabled'] = window.navigator.cookieEnabled;
+
 }
 
 // from DetectRTC
@@ -286,6 +306,134 @@ function getDetectRtcLibraryInfo() {
   });
 }
 
+// AudioContext fingerprint
+function audioFingerprintInfo() {
+  var audioContext = window.AudioContext || window.webkitAudioContext;
+  if ("function" !== typeof audioContext)
+    fingerprintData['web_audio_fingerprint_oscillator'] = 'N/A';
+  else {
+
+    var cc_output = [];
+    var audioCtx = new(window.AudioContext || window.webkitAudioContext),
+      oscillator = audioCtx.createOscillator(),
+      analyser = audioCtx.createAnalyser(),
+      gain = audioCtx.createGain(),
+      scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+    gain.gain.value = 0; // Disable volume
+    oscillator.type = "triangle"; // Set oscillator to output triangle wave
+    oscillator.connect(analyser); // Connect oscillator output to analyser input
+    analyser.connect(scriptProcessor); // Connect analyser output to scriptProcessor input
+    scriptProcessor.connect(gain); // Connect scriptProcessor output to gain input
+    gain.connect(audioCtx.destination); // Connect gain output to audiocontext destination
+
+    scriptProcessor.onaudioprocess = function(bins) {
+      bins = new Float32Array(analyser.frequencyBinCount);
+      analyser.getFloatFrequencyData(bins);
+      for (var i = 0; i < bins.length; i = i + 1) {
+        cc_output.push(bins[i]);
+      }
+      analyser.disconnect();
+      scriptProcessor.disconnect();
+      gain.disconnect();
+      fingerprintData['web_audio_fingerprint_oscillator'] = cc_output.slice(0, 30);
+    };
+
+    oscillator.start(0);
+    oscillator.stop(audioCtx.currentTime + 5);
+
+  }
+
+}
+
+// AudioContext properties:
+// Performs fingerprint as found in some versions of http://metrics.nt.vc/metrics.js
+function a(a, b, c) {
+  for (var d in b) "dopplerFactor" === d || "speedOfSound" === d || "currentTime" ===
+    d || "number" !== typeof b[d] && "string" !== typeof b[d] || (a[(c ? c : "") + d] = b[d]);
+  return a
+}
+
+var nt_vc_output;
+
+function audioContextPropertiesInfo() {
+  //var tempArry = [];
+  try {
+    var nt_vc_context = window.AudioContext || window.webkitAudioContext;
+    if ("function" !== typeof nt_vc_context)
+      nt_vc_output = "N/A";
+    else {
+      var f = new nt_vc_context,
+        d = f.createAnalyser();
+      nt_vc_output = a({}, f, "ac_");
+      nt_vc_output = a(nt_vc_output, f.destination, "ac_");
+      nt_vc_output = a(nt_vc_output, f.listener, "ac_");
+      nt_vc_output = a(nt_vc_output, d, "an_");
+      //nt_vc_output = window.JSON.stringify(nt_vc_output, undefined, 2);
+    }
+  } catch (g) {
+    nt_vc_output = 0
+  }
+  //set_result(nt_vc_output, 'nt_vc_result')
+  //tempArry.push(nt_vc_output)
+  fingerprintData['audio_context_properties'] = nt_vc_output;
+}
+
+// Fingerprint using hybrid of OscillatorNode/DynamicsCompressor method:
+var hybrid_output = [];
+
+function audioScillatorCompressorInfo() {
+
+  var audioContext = window.AudioContext || window.webkitAudioContext;
+  if ("function" !== typeof audioContext)
+    fingerprintData['web_audio_fingerprint_oscillator_and_dynamicsCompressor'] = 'N/A';
+  else {
+    var audioCtx = new(window.AudioContext || window.webkitAudioContext),
+      oscillator = audioCtx.createOscillator(),
+      analyser = audioCtx.createAnalyser(),
+      gain = audioCtx.createGain(),
+      scriptProcessor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+    // Create and configure compressor
+    compressor = audioCtx.createDynamicsCompressor();
+    compressor.threshold && (compressor.threshold.value = -50);
+    compressor.knee && (compressor.knee.value = 40);
+    compressor.ratio && (compressor.ratio.value = 12);
+    compressor.reduction && (compressor.reduction.value = -20);
+    compressor.attack && (compressor.attack.value = 0);
+    compressor.release && (compressor.release.value = .25);
+
+    gain.gain.value = 0; // Disable volume
+    oscillator.type = "triangle"; // Set oscillator to output triangle wave
+    oscillator.connect(compressor); // Connect oscillator output to dynamic compressor
+    compressor.connect(analyser); // Connect compressor to analyser
+    analyser.connect(scriptProcessor); // Connect analyser output to scriptProcessor input
+    scriptProcessor.connect(gain); // Connect scriptProcessor output to gain input
+    gain.connect(audioCtx.destination); // Connect gain output to audiocontext destination
+
+    scriptProcessor.onaudioprocess = function(bins) {
+      bins = new Float32Array(analyser.frequencyBinCount);
+      analyser.getFloatFrequencyData(bins);
+      for (var i = 0; i < bins.length; i = i + 1) {
+        hybrid_output.push(bins[i]);
+      }
+      analyser.disconnect();
+      scriptProcessor.disconnect();
+      gain.disconnect();
+      fingerprintData['web_audio_fingerprint_oscillator_and_dynamicsCompressor'] = hybrid_output.slice(0, 30);
+      //set_result(hybrid_output.slice(0,30), 'hybrid_result');
+      //draw_fp(bins);
+    };
+
+    oscillator.start(0);
+    oscillator.stop(audioCtx.currentTime + 5);
+
+  }
+
+
+}
+
+//
 function enabledPluginInfo() {
   var temp = [];
 
@@ -299,7 +447,7 @@ function enabledPluginInfo() {
           temp.push(temp2);
       }
     }
-    //console.log("enabledPluginInfo" + temp);
+    console.log("enabledPluginInfo" + temp);
     fingerprintData['enabled_plugin'] = temp;
   } else {
     fingerprintData['enabled_plugin'] = 'N/A';
@@ -325,7 +473,7 @@ function mimeTypeInfo() {
           temp2["plugin_description"] = "N/A";
         }
         mimeData.push(temp2);
-        //console.log("mimeTypeInfo" + mimeData);
+        console.log("mimeTypeInfo" + mimeData);
 
     }
     fingerprintData['browser_mime_types'] = mimeData;
@@ -366,6 +514,8 @@ function mediaRecorderVideoInfo() {
   }
 }
 
+
+// Audio mimetype
 function mediaRecorderAudioInfo() {
   var temp = [];
   if (typeof MediaRecorder !== 'undefined') {
@@ -411,6 +561,22 @@ function mediaRecorderAudioInfo() {
   }
 }
 
+// Network Information API
+function connectionTypeInfo() {
+  var isConnectionSupported = 'connection' in navigator;
+  var tempObj = {};
+  if (isConnectionSupported) {
+    tempObj['connection_type'] = navigator.connection.type;
+    tempObj['max_downlink'] = navigator.connection.downlinkMax;
+    fingerprintData['network_information'] = tempObj;
+
+  } else {
+
+    fingerprintData['network_information'] = "N/A";
+  }
+}
+
+
 function sortObj(obj, order) {
   "use strict";
 
@@ -442,6 +608,7 @@ function sortObj(obj, order) {
   return tempObj;
 }
 
+// clean data
 function cleanData() {
 
   //console.log('In cleanData fingerprintData' +  JSON.stringify(fingerprintData));
@@ -454,7 +621,40 @@ function cleanData() {
     }
 
   }
+
+  //console.log('In cleanData in actual_JSON' + JSON.stringify(actual_JSON));
+  for (var key in actual_JSON) {
+    if (actual_JSON.hasOwnProperty(key)) {
+      if (fingerprintData[key] == undefined) {
+        //console.log('In cleanData in actual_JSON' + key +  fingerprintData[key]);
+        fingerprintData[key] = "N/A";
+      }
+
+      finalData[key] = fingerprintData[key];
+      finalData = sortObj(finalData, 'asc');
+    }
+
+
+  }
+
 }
+
+// load json file
+function loadJSON(callback) {
+
+  var xobj = new XMLHttpRequest();
+  xobj.overrideMimeType("application/json");
+  xobj.open('GET', 'data/variables.json', true); // Replace 'my_data' with the path to your file
+  xobj.onreadystatechange = function() {
+    if (xobj.readyState == 4 && xobj.status == "200") {
+      // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+      callback(xobj.responseText);
+    }
+  };
+  xobj.send(null);
+}
+
+// print on screen
 function printOnScreen() {
   var output = document.getElementById("out");
   output.innerHTML = "<table class='table table-striped' " + " id='table_div'> " +
@@ -487,15 +687,14 @@ function printOnScreen() {
 
 getWeglRendererAndVendorInfo();
 getMediaDevicesInfo();
+getBrowserMediaPermissionsInfo();
+getFingerprint2LibraryInfo();
 getBrowserInfo();
-
+getDetectRtcLibraryInfo();
+audioFingerprintInfo();
 enabledPluginInfo();
 mimeTypeInfo();
 mediaRecorderVideoInfo();
 mediaRecorderAudioInfo();
-getFingerprint2LibraryInfo();
-getDetectRtcLibraryInfo();
-fingerprintData['canvas'] = true;
 printOnScreen();
 console.log(fingerprintData);
-console.log(fingerprintData['canvas'])

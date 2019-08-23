@@ -17,3 +17,11 @@ if (window.requestIdleCallback) {
 		})  
     }, 50)
 }
+function getFingerprint2LibraryInfo(){
+  var tempObj = getFingerprint2Object();
+  console.log(tempObj);
+  var tempObj2 = {};
+  for(var index in tempObj)
+    tempObj2[tempObj[index].key] = tempObj[index].value;
+  console.log(tempObj2);
+}
