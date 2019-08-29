@@ -478,3 +478,4 @@ Fingerprint2.get(function(components) {
   printOnScreen();
 });
 
+console.log(fingerprintData);

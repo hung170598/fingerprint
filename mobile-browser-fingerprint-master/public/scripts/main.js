@@ -1426,10 +1426,10 @@ function printOnScreen() {
 }
 
 // send fingerprintData to backend server
-function sendToServer(data) {
+function sendToServer(data) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
   $.ajax({
     type: "POST",
-    url: "https://ashara.cs.helsinki.fi/process_post",
+    url: "localhost:8081/process_post",
     data: JSON.stringify(data),
     contentType: "application/json",
     success: function(suc) {
@@ -1444,7 +1444,6 @@ function sendToServer(data) {
 // function call groups
 function functionCallFacade() {
   var output = document.getElementById("out");
-  output.innerHTML = "<h1 align ='center'> <img src='image/Fingerprint.png'> Fingerprinting…  </h1>  ";
   getHttpHeadersInfoR();
   getWeglRendererAndVendorInfoR();
   getBrowserInfoR();
