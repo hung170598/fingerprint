@@ -1,13 +1,15 @@
-if (window.requestIdleCallback) {
-    requestIdleCallback(function () {
-        Fingerprint2.get(function (components) {
-          console.log(components) // an array of components: {key: ..., value: ...}
-        })
-    })
-} else {
-    setTimeout(function () {
-        Fingerprint2.get(function (components) {
-          console.log(components) // an array of components: {key: ..., value: ...}
-        })  
-    }, 500)
+
+var tempObj ={};
+Fingerprint2.get(function(components) {
+    for (var index in components) {
+        var obj = components[index];
+        var value = obj.value;
+        var key = obj.key;
+        tempObj[key] = value;
+    }
+    console.log(tempObj);
+});
+console.log(tempObj);
+for(var key in tempObj){
+    console.log(tempObj[key]);
 }
