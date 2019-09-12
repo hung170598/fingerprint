@@ -1146,7 +1146,7 @@ function printOnScreen() {
 function sendToServer(data) {
   $.ajax({
     type: "POST",
-    url: "https://ashara.cs.helsinki.fi/process_post",
+    url: "localhost:8081/process_post",
     data: JSON.stringify(data),
     contentType: "application/json",
     success: function(suc) {

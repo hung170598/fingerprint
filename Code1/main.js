@@ -1,21 +1,33 @@
-var fingerprintData1 = {};
 var fingerprintData = {};
-var actual_JSON;
-var permissionsList = [];
-var geoFlag = false;
-var medFlag1 = false;
-var medFlag2 = false;
-var notiFlag = false;
-var pushFlag = false;
-var midiFlag = false;
-var geoPermission = 'N/A';
-var notifPermission = 'N/A';
-var pushPermission = 'N/A';
-var midiPermission = 'N/A';
-var permissionsListObj = {};
+var finalData = {};
 
-// time stamp of the fingerprint
+//timestamp
 fingerprintData['timestamp'] = Date.now();
+
+//try catch wrapper
+var wrap = function(func){
+	return function(){
+		try{
+			func.apply(this, arguments);
+		} catch(error){
+			console.log("In wrapper" + func.name);
+		}
+	};
+};
+
+var getWeglRendererAndVendorInfoR = wrap(getWeglRendererAndVendorInfo);
+var getFingerprint2InfoR = wrap(getFingerprint2Info);
+var getBrowserInfoR = wrap(getBrowserInfo);
+var enabledPluginInfoR = wrap(enabledPluginInfo);
+var mimeTypeInfoR = wrap(mimeTypeInfo);
+var mediaRecorderVideoInfoR = wrap(mediaRecorderVideoInfo);
+var mediaRecorderAudioInfoR = wrap(mediaRecorderAudioInfo);
+var getDetectRTCInfoR = wrap(getDetectRTCInfo);
+var printOnScreenR = wrap(printOnScreen);
+var getMediaDevicesInfoR = wrap(getMediaDevicesInfo);
+var functionCallFacadeR = wrap(functionCallFacade);
+var mainEntryFunctionR = wrap(mainEntryFunction);
+
 // webgl vendor and renderer
 function getWeglRendererAndVendorInfo() {
   var canvas = document.getElementById('my_Canvas');
@@ -40,8 +52,8 @@ function getWeglRendererAndVendorInfo() {
   fingerprintData['webgl_renderer'] = renderer;
 }
 
-// from Fingerprint2
-function getFingerprint2Obj() {
+//get Fingerprint2 Info
+function getFingerprint2Info() {
   var tempObj = {}, components;
   Fingerprint2.get(function(components) {
     for (var index in components) {
@@ -50,7 +62,6 @@ function getFingerprint2Obj() {
       var key = obj.key;
       tempObj[key] = value;
     }
-    console.log(tempObj);
     
     fingerprintData['adBlock'] = tempObj['adBlock'];
     fingerprintData['addBehavior'] = tempObj['addBehavior'];
@@ -77,15 +88,11 @@ function getFingerprint2Obj() {
     fingerprintData['userAgent'] = tempObj['userAgent'];
     fingerprintData['webdriver'] = tempObj['webdriver'];
     fingerprintData['webgl'] = tempObj['webgl'];
-  }
-  );
-  console.log(components);
+  });
 }
-
 
 // get browser information
 function getBrowserInfo() {
-
   if (window.navigator.appName) {
     //AddRowToInfo ("Name of the browser (appName)", window.navigator.appName);
     fingerprintData['browser_name'] = window.navigator.appName;
@@ -144,6 +151,34 @@ function getBrowserInfo() {
   fingerprintData['cookies_enabled'] = window.navigator.cookieEnabled;
 }
 
+// media devices
+function getMediaDevicesInfo() {
+  if (navigator.mediaDevices) {
+    var tempStore = [];
+    navigator.mediaDevices.enumerateDevices()
+      .then(function(devices) {
+        devices.forEach(function(device) {
+          var tempObj = {};
+          tempObj['device_kind'] = device.kind;
+          tempObj['device_label'] = device.label;
+          tempObj['device_id'] = device.deviceId;
+          tempObj['device_group_id'] = device.groupId;
+          // var devices = device.kind + ": " + device.label +
+          //   " id = " + device.deviceId;
+          tempStore.push(tempObj);
+        });
+      })
+      .catch(function(err) {
+        console.log(err.name + ": " + err.message);
+      });
+
+    fingerprintData['media_devices'] = tempStore;
+  } else {
+    fingerprintData['media_devices'] = 'N/A';
+  }
+}
+
+//get enable Plugin Info
 function enabledPluginInfo() {
   var temp = [];
 
@@ -162,7 +197,6 @@ function enabledPluginInfo() {
   } else {
     fingerprintData['enabled_plugin'] = 'N/A';
   }
-
 }
 
 // MediaRecorder API
@@ -190,10 +224,8 @@ function mimeTypeInfo() {
   } else {
     fingerprintData['browser_mime_types'] = 'N/A';
   }
-
 }
 
-// Audio mimetype
 function mediaRecorderVideoInfo() {
   var temp = [];
 
@@ -269,162 +301,95 @@ function mediaRecorderAudioInfo() {
   }
 }
 
-function sortObj(obj, order) {
-  "use strict";
+//get DetectRTC Info
+function getDetectRTCInfo(){
+	DetectRTC.load(function(){
+	  	fingerprintData['audio_input_devices'] = DetectRTC.audioInputDevices;
+	  	fingerprintData['audio_output_devices'] = DetectRTC.audioOutputDevices;
+	  	fingerprintData['video_input_devices'] = DetectRTC.videoInputDevices;
+	  	fingerprintData['os_name'] = DetectRTC.osName;
+	  	fingerprintData['os_version'] = DetectRTC.osVersion;
+	  	function detectIpAddress(stream){
+	    	DetectRTC.DetectLocalIPAddress(function(ipAddress, isPublic, isIpv4){
+	      	if(!ipAddress) return;
+          console.log(ipAddress);
+	      	if(ipAddress.indexOf('Local') !== -1){
+	      	  fingerprintData["Local IP"] = ipAddress;
+	      	}else  {
+	     	     fingerprintData["Public IP"] = ipAddress;
+	     	   }
+	     	 if(!stream) return;
 
-  var key,
-    tempArry = [],
-    i,
-    tempObj = {};
+	     	 stream.getTracks().forEach(function(track) {
+	     	   track.stop();
+	     	 });
 
-  for (key in obj) {
-    tempArry.push(key);
-  }
-
-  tempArry.sort(
-    function(a, b) {
-      return a.toLowerCase().localeCompare(b.toLowerCase());
-    }
-  );
-
-  if (order === 'desc') {
-    for (i = tempArry.length - 1; i >= 0; i--) {
-      tempObj[tempArry[i]] = obj[tempArry[i]];
-    }
-  } else {
-    for (i = 0; i < tempArry.length; i++) {
-      tempObj[tempArry[i]] = obj[tempArry[i]];
-    }
-  }
-
-  return tempObj;
+	     	 stream = null;
+	    	}, stream);
+	 	}
+	  	if(DetectRTC.browser.name === "Edge") {
+	  	  navigator.mediaDevices.getUserMedia({video: true}).then(function(stream) {
+	   	   detectIpAddresses(stream);
+	   	});
+	  	} else{
+	   	 detectIpAddress();
+	  	}
+	});
 }
 
-function cleanData() {
-
-  //console.log('In cleanData fingerprintData' +  JSON.stringify(fingerprintData));
-  for (var key in fingerprintData) {
-    if (fingerprintData.hasOwnProperty(key)) {
-      if (fingerprintData[key] == undefined || fingerprintData[key].length == 0) {
-        //console.log('In cleanData fingerprintData' + key +  fingerprintData[key]);
-        fingerprintData[key] = "N/A";
-      }
-    }
-
-  }
-}
-function printOnScreen(data) {
-  
+//print on screen
+function printOnScreen() {
+  var output = document.getElementById("out");
+  output.innerHTML = "<table class='table table-striped' " + " id='table_div'> " +
+    "<tbody> </tbody></table>";
   //fingerprintData = sortObj(fingerprintData, 'asc');
 
-  for (var key in data) {
+  for (var key in fingerprintData) {
 
-    var value = JSON.stringify(data[key]);
+    var value = JSON.stringify(fingerprintData[key]);
     if (value.length > 250) {
 
       $("#table_div").append("<tr data-toggle='collapse' data-target='#" + key + "' class='accordion-toggle' ><td class='col-md-2'>" + key + "</td> <td class='col-md-6'>" + value.substring(0, 100) + "<button type='button'> More >> </button>" + " </td></tr>" +
         "<tr><td colspan='3' class='hiddenRow'> <div class='accordion-body collapse' id='" + key + "'>" + value.substring(0, 1000) + "</div> </td></tr>");
 
-    } else if (data[key] instanceof Array) {
+    } else if (fingerprintData[key] instanceof Array) {
 
       $("#table_div").append("<tr><td class='col-md-2'>" + key + "</td> <td class='col-md-6'>" + value + "</td></tr>");
 
-    } else if ((typeof data[key] === 'function') || (typeof data[key] === 'object')) {
+    } else if ((typeof fingerprintData[key] === 'function') || (typeof fingerprintData[key] === 'object')) {
       $("#table_div").append("<tr><td class='col-md-2'>" + key + "</td> <td class='col-md-6'>" + value + "</td></tr>");
 
     } else {
-      $("#table_div").append("<tr><td class='col-md-2'>" + key + "</td> <td class='col-md-6'>" + data[key] + "</td></tr>");
+      $("#table_div").append("<tr><td class='col-md-2'>" + key + "</td> <td class='col-md-6'>" + fingerprintData[key] + "</td></tr>");
 
     }
-
-
   }
 }
 
-// getWeglRendererAndVendorInfo();
-// getMediaDevicesInfo();
-// getBrowserInfo();
-// enabledPluginInfo();
-// mimeTypeInfo();
-// mediaRecorderVideoInfo();
-// mediaRecorderAudioInfo();
+function functionCallFacade(){
+	getWeglRendererAndVendorInfoR();
+	getBrowserInfoR();
+	getMediaDevicesInfoR();
+	getFingerprint2InfoR();
+	getDetectRTCInfo();
+	enabledPluginInfoR();
+	mimeTypeInfoR();
+	mediaRecorderAudioInfoR();
+	mediaRecorderVideoInfoR();
+	setTimeout(function(){
+		printOnScreen();
+		console.log(fingerprintData);
+	}, 500);
+}
 
-//getDetectRTCInfo
-var output = document.getElementById("out");
-output.innerHTML = "<p>" +50 + "</p>";
-output.innerHTML = "<table class='table table-striped' " + " id='table_div'> " +
-    "<tbody> </tbody></table>";
+function mainEntryFunction(){
+	var d = jQuery.Deferred(), p = d.promise();
+	p.then(function(value){
+		console.log(value);
+		functionCallFacadeR();
+		});
+	d.resolve();
+}
 
-
-DetectRTC.load(function(){
-  fingerprintData['audio_input_devices'] = DetectRTC.audioInputDevices;
-  fingerprintData['audio_output_devices'] = DetectRTC.audioOutputDevices;
-  fingerprintData['video_input_devices'] = DetectRTC.videoInputDevices;
-  fingerprintData['os_name'] = DetectRTC.osName;
-  fingerprintData['os_version'] = DetectRTC.osVersion;
-  function detectIpAddress(stream){
-    DetectRTC.DetectLocalIPAddress(function(ipAddress, isPublic, isIpv4){
-      if(!ipAddress) return;
-      if(ipAddress.indexOf('Local') !== -1){
-        fingerprintData["Local IP"] = ipAddress;
-      } else {
-        fingerprintData["Public IP"] = ipAddress;
-      }
-      if(!stream) return;
-
-      stream.getTracks().forEach(function(track) {
-        track.stop();
-      });
-
-      stream = null;
-    }, stream);
-  }
-  if(DetectRTC.browser.name === "Edge") {
-    navigator.mediaDevices.getUserMedia({video: true}).then(function(stream) {
-      detectIpAddresses(stream);
-    });
-  } else{
-    detectIpAddress();
-  }
-});
-
-//getFIngerprint2LibraryInfo
-var tempObj = {}, components;
-Fingerprint2.get(function(components) {
-  for (var index in components) {
-   var obj = components[index];
-   var value = obj.value;
-   var key = obj.key;
-    tempObj[key] = value;
-  }
-  fingerprintData['adBlock'] = tempObj['adBlock'];
-  fingerprintData['addBehavior'] = tempObj['addBehavior'];
-  fingerprintData['audio'] = tempObj['audio'];
-  fingerprintData['availableScreenResolution'] = tempObj['availableScreenResolution'];
-  fingerprintData['canvas'] = tempObj['canvas']; 
-  fingerprintData['colorDepth'] = tempObj['colorDepth'];
-  fingerprintData['deviceMemory'] = tempObj['deviceMemory'];
-  fingerprintData['fonts'] = tempObj['fonts'];
-  fingerprintData['indexedDb'] = tempObj['indexedDb'];
-  fingerprintData['cpuClass'] = tempObj['cpuClass'];
-  fingerprintData['hasLiedBrowser'] = tempObj['hasLiedBrowser'];
-  fingerprintData['hasLiedLanguages'] = tempObj['hasLiedLanguages'];
-  fingerprintData['hasLiedOs'] = tempObj['hasLiedOs'];
-  fingerprintData['hardwareConcurrency'] = tempObj['hardwareConcurrency'];
-  fingerprintData['language'] = tempObj['language'];
-  fingerprintData['localStorage'] = tempObj['localStorage'];
-  fingerprintData['openDatabase'] = tempObj['openDatabase'];
-  fingerprintData['plugins'] = tempObj['plugins'];
-  fingerprintData['screenResolution'] = tempObj['screenResolution'];
-  fingerprintData['sessionStorage'] = tempObj['sessionStorage'];
-  fingerprintData['timezone'] = tempObj['timezone'];
-  fingerprintData['timezoneOffset'] = tempObj['timezoneOffset'];
-  fingerprintData['touchSupport'] = tempObj['touchSupport'];
-  fingerprintData['userAgent'] = tempObj['userAgent'];
-  fingerprintData['webdriver'] = tempObj['webdriver'];
-  fingerprintData['webgl'] = tempObj['webgl'];
-  printOnScreen();
-});
-console.log(components);
-fingerprintData1 = Object.assign({}, fingerprintData1, fingerprintData);
-console.log(fingerprintData);
+mainEntryFunctionR();
+console.log(navigator.connection);
